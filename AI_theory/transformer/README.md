@@ -1,9 +1,11 @@
 # Transformer
+[经典网络架构学习-Transformer](https://blog.csdn.net/BXD1314/article/details/125759352?spm=1001.2014.3001.5502)
 ## vector set as input
 - one-hot encoding (1-of-N encoding)
 - word class
 - word embedding
 ### word embedding
+李宏毅：[word embedding](https://www.youtube.com/watch?v=X7PH3NuYW0Q)
 machine learn the meaning of words from reading a lot of documents without supervision
 - input: word
 - nerual network
@@ -40,6 +42,24 @@ skip-gram
 - image
 - document
 
+### positional embedding
+why? -> transformer不采用RNN结构，而使用全局信息，不能利用单词的顺序信息，但这部分信息对NLP来说非常重要，所以transformer中使用positional embedding保存单词在序列中的相对或绝对位置。<br>
+#### Sinusoidal Positional Encoding 正弦位置编码
+$PE_(pos, 2i) = sin(\frac{pos}{10000^{2i/d}})$ <br>
+$PE_(pos, 2i+1) = cos(\frac{pos}{10000^{2i/d}})$
+- pos: 序列中的位置(0, 1, 2, ...)<br>
+- i: index of dimension (0, 1, ..., d-1)
+- 偶数维用sin， 奇数维用cos
+- $10000^{2i/d}$控制频率，保证不同维度有不同的周期
+  - 低维(i小) -> 周期短，变化快 -> 编码局部信息（短程信息）
+  - 高维(i大) -> 周期长，变化慢 -> 编码全局信息（长程信息）
+- 即使序列比训练时更长，也能计算其位置的编码
+- 模型可以计算出相对位置，对于固定长度的间距k，PE(pos+k)可以通过PE(pos)计算得出
+
+#### learnable positional embedding
+类似于word embedding，直接为每个位置分配一个向量，随机初始化，随着训练更新<br>
+e.g.: BERT, GPT
+
 ## output
 1. each vector has a label
     - POS tagging 每个词向量 -> 其词性
@@ -64,8 +84,12 @@ FC: fully-connected<br>
 - 如果开很长的window，意味着FC需要很多参数，运算量大，容易overfitting
 
 ## self-attention
-李宏毅: [self-attention & transformer](https://www.bilibili.com/video/BV1v3411r78R?spm_id_from=333.788.videopod.episodes&vd_source=c40614f29fe4e0bd8bf156e97f9b3287)<br>
+李宏毅B站视频: [self-attention & transformer](https://www.bilibili.com/video/BV1v3411r78R?spm_id_from=333.788.videopod.episodes&vd_source=c40614f29fe4e0bd8bf156e97f9b3287)<br>
+[self-attention](https://speech.ee.ntu.edu.tw/~hylee/ml/ml2021-course-data/self_v7.pdf)<br>
+[transformer](https://speech.ee.ntu.edu.tw/~hylee/ml/ml2021-course-data/seq2seq_v9.pdf)<br>
 paper: [Attention is All You Need](https://arxiv.org/pdf/1706.03762)
+
+![alt text](image-9.png)
 
 会考虑整个sequence的信息，然后input几个vector就输出几个vector
 ![alt text](image.png)
@@ -80,10 +104,24 @@ paper: [Attention is All You Need](https://arxiv.org/pdf/1706.03762)
 
 矩阵角度：<br>
 ![alt text](image-6.png)
+**公式**<br>
+$Attention(Q,K,V) = softmax(\frac{QK^T}{\sqrt{d_k}})V$
+- $d_k$ normalization
+- Q, K decides the distribution of attention (weights)
+- V decides the information to pass on (content itself)
+
+<font color = red>为什么要除以$\sqrt{d_k}$?</font><br>
+
+$d_k$为query和key的维度，随着$d_k$增大，$Q \cdot K = \sum_{i=1}^{d_k}q_i k_i$ 的值会变得越来越大，softmax在大数值输入时会变得非常陡峭，导致梯度消失，训练不稳定，因此除以$\sqrt{d_k}$是为了让内积的方差保持在一个合理的范围，这样softmax的输入分布不会随维度大小而爆炸，梯度也比较稳定。
+
 
 ### multi-head self-attention
 why multi-head? -> different type of relevance
 - 多个q，不同q负责不同种类的相关性
+
+![alt text](image-10.png)
+输入$\mathbf{X}$分别传递给h个不同的self-attention中，计算得到h个输出矩阵$\mathbf{Z}$，然后将其concatenate到一起，传入linear层，最终得到输出$\mathbf{Z}$
+
 ![alt text](image-7.png)
 
 ### positional encoding
@@ -104,3 +142,49 @@ self-attention: CNN with learnable receptive field
 - faster,因为是parallel并行的
 
 ![alt text](image-8.png)
+
+# Encoder
+![alt text](image-11.png)
+## add & norm
+- add: residual connection，输入输出需要一致
+- norm: 指layer normalization，通常用于RNN结构
+
+<font color = red>关于Norm拓展</font><br>
+1. CNN中`batch norm`与`layer norm`的区别
+2. llm中Norm的变种有哪些
+
+## feed forward
+2 layers的全连接层，第一层激活函数ReLU，第二层不适用激活函数
+1. $ H = ReLU(W_1 X + b_1)$
+2. $ O = W_2 H + b_2$
+
+# Decoder
+![alt text](image-12.png)
+与encoder block的区别：<br>
+1. 两个multi-head attention
+2. 第一个multi-head attention采用了masked操作
+3. 第二个multi-head attention为cross attention，其$\mathbf{K}$, $\mathbf{V}$矩阵使用encoder的编码信息矩阵进行计算，$\mathbf{Q}$使用上一个decoder block的输出计算
+4. 最后有softmax计算翻译单词的概率
+## 第一个multi-head attention
+$Attention(\mathbf{Q}, \mathbf{K}, \mathbf{V}, \mathbf{M}) = softmax(\frac{\mathbf{QK^{\top}}}{\sqrt{d_k}} + \mathbf{M})\mathbf{V}$
+- $\mathbf{M}$: 掩码矩阵，在self-attention的softmax之前使用，需要屏蔽的位置为$-\infty$，其余位置为0，通过相加，需要屏蔽的位置为无穷小，softmax后值为0，这样得到的输出矩阵只和之前的信息有关
+![alt text](image-13.png)
+
+# transformer与各种大模型
+## encoder + decoder
+### google的T5模型系列
+### OFA 通义实验室
+- one-for-all通用多模态预训练模型，使用简单的序列到序列的学习框架统一模态（跨模态、视觉、语言等模态）和任务（如图片生成、视觉定位、图片描述、图片分类、文本生成等）
+## encoder
+### bert
+
+### clip
+
+### vit
+
+## decoder
+
+### gpt
+### llama
+### gemma
+### qwen
