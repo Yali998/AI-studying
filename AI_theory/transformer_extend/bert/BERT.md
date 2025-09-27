@@ -4,6 +4,7 @@ code: [bert](https://github.com/google-research/bert)<br>
 reference resouce:<br>
 - [69 BERT预训练【动手学深度学习v2】](https://www.bilibili.com/video/BV1yU4y1E7Ns/?spm_id_from=333.1391.0.0&p=4&vd_source=c40614f29fe4e0bd8bf156e97f9b3287)
 - [BERT 论文逐段精读【论文精读】](https://www.bilibili.com/video/BV1PL411M7eQ/?spm_id_from=333.1391.0.0&vd_source=c40614f29fe4e0bd8bf156e97f9b3287)
+- [Language Understanding with BERT](https://cameronrwolfe.substack.com/p/language-understanding-with-bert)
 
 ## overview
 思路来源于bidirectional + transformer
@@ -51,6 +52,9 @@ word embedding: token的embedding<br>
 ![alt text](image-2.png)
 
 ## two pre-training tasks
+两者是并行训练的<br>
+![alt text](image-7.png)
+
 ### masked language model (MLM)
 ![alt text](image-4.png)
 
@@ -65,6 +69,17 @@ word embedding: token的embedding<br>
 预训练阶段主要学习`<mask>`位置的预测任务，可能会过度依赖`<mask>`作为提示
 - pretrain: MLM中，输入句子有mask token，用来让模型预测被遮住的词
 - fine-tuning: 下游任务中，如分类or回答，输入中不会有mask，模型需要直接处理真实的句子
+
+**MLM: loss**<br>
+MLM的训练目标：<br>
+- 只对被选中的15%位置计算预测误差(CE loss)
+- 未被选中的词不会参与损失计算
+
+$\mathcal{L}_{\text{MLM}} = - \sum_{i \in \mathcal{M}} \log P\big(x_i \,\big|\, x_{\backslash \mathcal{M}}\big)$
+- $\mathcal{M}$: 被选中进行预测的token集合（15%）
+- $x_i$: 第i个token
+- $x_{\backslash \mathcal{M}}$: 除$\mathcal{M}$外的上下文token
+- $P(x_i|x_{\backslash \mathcal{M}})$: 模型预测token $x_i$的概率
 
 ### next sentence prediction (NSP)
 预测一个句子对中两个句子是不是相邻<br>
@@ -83,3 +98,6 @@ word embedding: token的embedding<br>
     - Q & A: 输出start和end token的概率分布
 2. initialize with pre-trained params
 2. fine-tuning `all params + new layer` with downstream tasks dataset
+
+## codes
+unread
