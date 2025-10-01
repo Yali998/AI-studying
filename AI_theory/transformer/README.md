@@ -177,14 +177,15 @@ $Attention(\mathbf{Q}, \mathbf{K}, \mathbf{V}, \mathbf{M}) = softmax(\frac{\math
 - one-for-all通用多模态预训练模型，使用简单的序列到序列的学习框架统一模态（跨模态、视觉、语言等模态）和任务（如图片生成、视觉定位、图片描述、图片分类、文本生成等）
 ## encoder
 ### bert
-
-### clip
-
+[BERT](../transformer_extend/bert/BERT.md)
 ### vit
+[ViT](../transformer_extend/vit/vit.md)
+### clip
+[CLIP](../transformer_extend/clip/CLIP.md)
 
 ## decoder
 
 ### gpt
-### llama
+### Meta: llama
 ### gemma
 ### qwen
