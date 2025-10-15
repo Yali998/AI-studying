@@ -6,9 +6,12 @@
 [transformer](transformer\README.md)
 
 ## transformer_extend
-### bert
+### decoder-only
+#### bert
 [BERT](transformer_extend\bert\BERT.md)
-### vit
+#### vit
 [Vit](transformer_extend\vit\vit.md)
-### clip
+#### clip
 [CLIP](transformer_extend\clip\CLIP.md)
+
+### encoder-only

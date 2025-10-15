@@ -184,8 +184,84 @@ $Attention(\mathbf{Q}, \mathbf{K}, \mathbf{V}, \mathbf{M}) = softmax(\frac{\math
 [CLIP](../transformer_extend/clip/CLIP.md)
 
 ## decoder
+### summary of variation
+|| transformer |variation| significance |
+|---------|-------|---------|---------|
+|positional embedding| 正弦绝对位置编码 | 相对位置编码<br> - rope<br> - alibi<br>|更好适应长文本，外推性，远程衰减|
+| norm| layer norm| rms norm | 稳定性更好 <br> 计算更高效|
+| attention | multi-head attention | MHA, MQA, GQA, MLA | 减少运算量，降低复杂度 |
+|FFN的激活函数 |ReLU |SwiGlu, GeGlu |更好的映射，表达空间更丰富 <br> 加门控，选择性传达信息 |
 
 ### gpt
+- learnable positional embedding
+- pre-layernorm
+- activation: GELU
+
 ### Meta: llama
+英文语料<br>
+
+三个版本：
+
+| llama |llama1| llama2            |llama3|
+|----|----|-------------------|---|
+|size| 7B, 13B, 33B, 65B | 3B, 13B, 34B, 70B |8B, 13B, 70B, 400B|
+|training corpus| 1.4T <br> 20种语言| 2.0T              | 15T <br> 95%英文，5%其他30+种语言|
+|context|2k| 4k                |8K|
+|attention| MHA| MQA -> GQA        | GQA|
+
+对比transformer的改动：
+1. pre-layernorm: RMS norm
+2. positional embedding: after normalization, RoPE
+3. self-attention: group query attention
+4. FFN activation: SwiGLU
+
+post training 和 reinforcement learning --> 对齐人类偏好，像人类思维一样去表达
+
+并行计算：数据并行化、模型并行化、pipeline并行化<br>
+infra很强
+
 ### gemma
-### qwen
+*google产品：Gemma (open) & Gemini (closed) <br>
+
+模型规模：小型(2B), 中型(7B), 9B
+
+特点：
+1. sliding window机制
+2. 用了很多RMS Norm, 保证训练过程稳定收敛
+   3. input_rms_norm
+   4. post_attn_rms_norm
+   4. pre_ffn_rms_norm
+   5. post_ffn_rms_norm
+   6. rms_norm
+3. FFN不同：
+   4. 通过Gate_proj引入门控机制，决定哪些信息应该被保留或丢弃。 
+   5. GeLU激活函数
+
+### qwen 千问
+```
+           ┌─────────────────────────────┐
+           │       大规模语料训练         │
+           │     （预测下一个词）         │
+           └──────────┬──────────────────┘
+                      │
+               基座模型（Qwen-Base）
+                      │
+                      ▼
+           ┌─────────────────────────────┐
+           │      SFT：监督微调           │
+           │   用人工编写指令-回答数据训练 │
+           └──────────┬──────────────────┘
+                      │
+             得到 Qwen-SFT 模型
+                      │
+                      ▼
+           ┌─────────────────────────────┐
+           │      RLHF：人类反馈强化学习   │
+           │    1. 人类比较回答 → 奖励模型 │
+           │    2. 用PPO优化生成策略       │
+           └──────────┬──────────────────┘
+                      │
+                      ▼
+              ✅ Qwen-Chat（对话模型）
+
+```

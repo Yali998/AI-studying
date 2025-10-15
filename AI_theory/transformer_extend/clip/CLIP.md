@@ -72,7 +72,7 @@ T_f = text_encoder(T)  #[n, d_t]
 ```
 
 向量过一次多模态embedding (multimodal embedding)，提取多模态特征<br>
-$W_i, W_t$把文字、图片特征投影到多模态的特征空间，同时对其两者的dimension。
+$W_i, W_t$把文字、图片特征投影到多模态的特征空间，同时对齐两者的dimension。
 - $W_i \in R^{d_i \times d_e}$
 - $W_t \in R^{d_t \times d_e}$
 
